@@ -3,32 +3,62 @@ from abc import ABC
 # Source : https://refactoring.guru/fr/design-patterns/mediator/python/example
 class Mediateur(ABC):
     """
-    Le médiateur est le composant principal qui réagit avec tout les autres composants.
+    Interface abstraite du Médiateur est le composant principal qui réagit avec tout les autres composants.
+    Définit le notify par lequel tous les composants signalent des évènements sans connaître les autres.
     """
 
     def notify(self, sender: object, event: str) -> None:
         pass
 
-class MediateurConcret(Mediateur):
-    def __init__(self, component1: Composant1, component2: Composant2) -> None:
-        self._component1 = component1
-        self._component1.mediateur = self
-        self._component2 = component2
-        self._component2.mediateur = self
+class MediateurCafetiereConcret(Mediateur):
+    """
+    Amène le cerveau de l'application, il connaît tous les composants et centralise toute la logique de coordination
+    et les règles métier (ex: vérifier si la machine est allumée avant de pouvoir couler le café)
+    """
+    def __init__(self, machine: 'MachineACafe', cafe: 'Cafe', sucre: 'Sucre', tasse: 'Tasse') -> None:
+        self._machine = machine
+        self._machine.mediateur = self
+        self._cafe = cafe
+        self._cafe.mediateur = self
+        self._sucre = sucre
+        self._sucre.mediateur = self
+        self._tasse = tasse
+        self._tasse.mediateur = self
 
     def notify(self, sender: object, event: str) -> None:
-        if event == "Allumer/Éteindre":
-            print("Mediateur réagit au A et trigger les opérations suivantes:")
-            self._component2.do_c()
-        elif event == "Café court":
-            print("Médiateur réagit au D et trigger les opérations suivantes:")
-            self._component2.do_c()
-        elif event == "Ajout sucre":
-            print("Médiateur réagit au B")
+        """
+        Gère les évènements reçus depuis les composants et groupe les actions
+        """
+        if event == "demarrer_machine":
+            if self._machine.is_on:
+                print("[Médiateur] La machine est allumée. Prête à servir !")
+            else:
+                print("[Médiateur] La machine est éteinte.")
+
+        elif event == "demande_cafe":
+            # Règle métier n1: On ne peut pas faire de café si la machine est éteinte
+            if not self._machine.is_on:
+                print("[Médiateur] impossible de faire du café, la machine est éteinte !")
+                return
+            
+            print("[Médiateur] Préparation du café :")
+            self._tasse.placer()
+            self._cafe.couler()
+            print("[Médiateur] Le café est prêt dans la tasse !")
+
+        elif event == "demande_sucre":
+            # Règle métier n2: Vérifie si une tasse est présente pour recevoir le sucre
+            if not self._tasse.presente:
+                print("[Médiateur] Impossible d'ajouter du sucre, il n'y a pas de tasse !")
+                return
+            
+            self._sucre.ajouter()
+        
 
 class BaseComponent:
     """
-    Le composant de base donne les fonctionnalités de base de sorte un médiator instance dans des objets de composants.
+    Le classe de base pour tous les composants de la machine. Elle fournit une référence
+    partagée vers le médiateur
     """
 
     def __init__(self, mediateur: Mediateur = None) -> None:
@@ -42,51 +72,57 @@ class BaseComponent:
     def mediateur(self, mediateur: Mediateur) -> None:
         self._mediateur = mediateur
 
+
 """
-Les composants concrets implémentent différentes fonctionnalités. Ils ne dépendant pas sur les autres components.
-Ils ne dépendant pas non plus sur les classes de médiateur concrets.
+Les composants concrets implémentent différentes fonctionnalités. Ils ne dépendant pas sur les autres composants.
 """
 
-class Composant1(BaseComponent):
-    def __init__(self, mediateur: Mediateur = None) -> None:
-        super().__init__(mediateur)
+class MachineACafe(BaseComponent):
+    def __init__(self) -> None:
+        super().__init__()
         self.is_on = False
-        self.quantite_sucre = 0
 
-    def do_a(self) -> None:
+    def basculer_alimentation(self) -> None:
         self.is_on = not self.is_on
-        print(f"Composant 1 fait A (État: {self.is_on})")
-        self.mediateur.notify(self, "Allumer/Éteindre")
+        print(f"[MachineACafe] Alimentation basculée (État : {self.is_on})")
+        self.mediateur.notify(self, "demarrer_machine")
 
-    def do_b(self) -> None:
-        self.quantite_sucre += 10
-        print(f"Composant 1 fait B (Ajout de sucre {self.quantite_sucre}g)")
-        self.mediateur.notify(self, "Ajout sucre")
-
-class Composant2(BaseComponent):
-    def __init__(self, mediateur: Mediateur = None) -> None:
-        self.mil_cafe = 50
-
-    def do_c(self) -> None:
-        print("Composant 2 fait C")
-        self.mediateur.notify(self, "C")
-
-    def do_d(self) -> None:
-        print(f"Composant 2 fait D (Café court ajouté) {self.mil_cafe}ml")
-        self.mediateur.notify(self, "Café court")
+class Cafe(BaseComponent):
+    def couler(self) -> None:
+        print("[Cafe] Le café coule dans la tasse (50ml).")
         
+class Sucre(BaseComponent):
+    def __init__(self) -> None:
+        super().__init__()
+        self.quantite = 0
+
+    def ajouter(self) -> None:
+        self.quantite += 10
+        print(f"[Sucre] Ajout de 10g de sucre (Total : {self.quantite}g).")
+
+class Tasse(BaseComponent):
+    def __init__(self) -> None:
+        super().__init__()
+        self.presente = True
+
+    def placer(self) -> None:
+        print("[Tasse] Tasse bien positionnée.")
+         
 # Source : https://medium.com/@anushagrawal01/building-an-interactive-python-menu-for-executing-commands-2e8a6b028a38
 def afficher_menu():
-    print(" == Menu du café (Médiateur) ==")
-    print("1. Change l'état de la machine pour Allumer ou Éteindre (Déclencher opération A)")
-    print("2. Demande un café court (Déclencher opération D)")
-    print("3. Ajout de sucre dans le café (Déclencher opération B)")
+    print(" == Menu de la Machine à Café ==")
+    print("1. Allumer ou Éteindre la machine")
+    print("2. Faire un café (Action coordonnée : Tasse + Café)")
+    print("3. Ajout de sucre dans le café (Interagit avec la tasse et le café)")
     print("4. Quitter")
 
 if __name__ == "__main__":
-    c1 = Composant1()
-    c2 = Composant2()
-    mediateur = MediateurConcret(c1, c2)
+    machine = MachineACafe()
+    cafe = Cafe()
+    sucre = Sucre()
+    tasse = Tasse()
+
+    mediateur = MediateurCafetiereConcret(machine, cafe, sucre, tasse)
 
     while True:
         print("\n")
@@ -96,14 +132,11 @@ if __name__ == "__main__":
         print()
 
         if choix == "1":
-            print("--- Le client déclenche opération A (Allumer ou éteindre la machine à café) ---")
-            c1.do_a()
+            machine.basculer_alimentation()
         elif choix == "2":
-            print("--- Le client déclenche opération D (Demande un café court) ---")
-            c2.do_d()
+            machine.mediateur.notify(machine, "demande_cafe")
         elif choix == "3":
-            print("--- Le client déclenche opération B (Ajout de sucre) ---")
-            c1.do_b()
+            sucre.mediateur.notify(sucre, "demande_sucre")
         elif choix == "4":
             print("Au revoir!")
             break
