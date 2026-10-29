@@ -3,8 +3,8 @@ from abc import ABC
 # Source : https://refactoring.guru/fr/design-patterns/mediator/python/example
 class Mediateur(ABC):
     """
-    Interface abstraite du Médiateur est le composant principal qui réagit avec tout les autres composants.
-    Définit le notify par lequel tous les composants signalent des évènements sans connaître les autres.
+    Interface abstraite du Médiateur est le composant principal qui réagit avec tout les autres composants
+    Définit le notify par lequel tous les composants signalent des évènements sans connaître les autres
     """
 
     def notify(self, sender: object, event: str) -> None:
@@ -12,7 +12,7 @@ class Mediateur(ABC):
 
 class MediateurCafetiereConcret(Mediateur):
     """
-    Amène le cerveau de l'application, il connaît tous les composants et centralise toute la logique de coordination
+    Incarne le cerveau de l'application, il connaît tous les composants et centralise toute la logique de coordination
     et les règles métier (ex: vérifier si la machine est allumée avant de pouvoir couler le café)
     """
     def __init__(self, machine: 'MachineACafe', cafe: 'Cafe', sucre: 'Sucre', tasse: 'Tasse') -> None:
@@ -57,7 +57,7 @@ class MediateurCafetiereConcret(Mediateur):
 
 class BaseComponent:
     """
-    Le classe de base pour tous les composants de la machine. Elle fournit une référence
+    Le classe de base pour tous les composants de la machine, elle fournit une référence
     partagée vers le médiateur
     """
 
@@ -74,42 +74,78 @@ class BaseComponent:
 
 
 """
-Les composants concrets implémentent différentes fonctionnalités. Ils ne dépendant pas sur les autres composants.
+Les composants concrets implémentent différentes fonctionnalités, ils ne dépendant pas sur les autres composants
 """
 
 class MachineACafe(BaseComponent):
+    """
+    Représente la machine à café et gère son état d'alimentation (allumée/éteinte)
+    """
     def __init__(self) -> None:
+        """
+        Initialise la machine à café avec l'état éteint par défaut
+        """
         super().__init__()
         self.is_on = False
 
     def basculer_alimentation(self) -> None:
+        """
+        Alterne l'état d'alimentation de la machine et notifie le médiateur
+        """
         self.is_on = not self.is_on
         print(f"[MachineACafe] Alimentation basculée (État : {self.is_on})")
         self.mediateur.notify(self, "demarrer_machine")
 
 class Cafe(BaseComponent):
+    """
+    Composant gérant de l'action de couler le café
+    """
     def couler(self) -> None:
+        """
+        Simule l'écoulement du café de 50 ml dans la tasse
+        """
         print("[Cafe] Le café coule dans la tasse (50ml).")
         
 class Sucre(BaseComponent):
+    """
+    Composant gérant la quantité et l'ajout du sucre
+    """
     def __init__(self) -> None:
+        """
+        Initialise la quantité de sucre à 0g
+        """
         super().__init__()
         self.quantite = 0
 
     def ajouter(self) -> None:
+        """
+        Incrémente la quantité de sucre de 10g et affiche le total
+        """
         self.quantite += 10
         print(f"[Sucre] Ajout de 10g de sucre (Total : {self.quantite}g).")
 
 class Tasse(BaseComponent):
+    """
+    Composant représentant la tasse et sa position
+    """
     def __init__(self) -> None:
+        """
+        Initialise la présence de la tasse, qui est présente par défaut
+        """
         super().__init__()
         self.presente = True
 
     def placer(self) -> None:
+        """
+        Positionne la tasse pour recevoir la préparation
+        """
         print("[Tasse] Tasse bien positionnée.")
          
 # Source : https://medium.com/@anushagrawal01/building-an-interactive-python-menu-for-executing-commands-2e8a6b028a38
 def afficher_menu():
+    """
+    Affiche le menu de la machine à café dans la console
+    """
     print(" == Menu de la Machine à Café ==")
     print("1. Allumer ou Éteindre la machine")
     print("2. Faire un café (Action coordonnée : Tasse + Café)")
